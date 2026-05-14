@@ -16,6 +16,8 @@ import mongoose from "mongoose";
 import { env } from "./config/env";
 
 const app = express();
+app.set("trust proxy", 1);
+
 
 app.use(helmet());
 app.use(cors({
