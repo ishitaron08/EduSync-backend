@@ -265,7 +265,9 @@ export const assessmentsService = {
     if (!assessment) {
       throw new AppError("Assessment not found", 404);
     }
-    const attempts = await AssessmentAttempt.find({ assessment: assessmentId, status: { $in: ["submitted", "graded"] } });
+    const attempts = await AssessmentAttempt.find({ assessment: assessmentId, status: { $in: ["submitted", "graded"] } })
+      .populate("student", "name email")
+      .lean();
     const scores = attempts.map((attempt) => Number(attempt.score ?? 0));
     const maxScores = attempts.map((attempt) => Number(attempt.maxScore ?? 0)).filter(Boolean);
     const attemptsMaxScore = maxScores.length ? maxScores.reduce((acc, value) => acc + value, 0) / maxScores.length : maxScoreFor(assessment);
@@ -281,7 +283,7 @@ export const assessmentsService = {
         let correctCount = 0;
         let totalAttempted = 0;
         attempts.forEach(attempt => {
-          const ans = attempt.answers?.find(a => a.questionIndex === index);
+          const ans = attempt.answers?.find((a: any) => a.questionIndex === index);
           if (ans) {
             totalAttempted++;
             if (ans.selectedOptionIndex === question.correctOptionIndex) correctCount++;
@@ -295,6 +297,85 @@ export const assessmentsService = {
       }
     }
 
+    const enrollments = await Enrollment.find({ section: assessment.section })
+      .populate("student", "name email")
+      .lean();
+    const attemptsByStudent = new Map<string, any>();
+    for (const attempt of attempts) {
+      const student = attempt.student as any;
+      if (student?._id) {
+        attemptsByStudent.set(String(student._id), attempt);
+      }
+    }
+
+    const assessmentMaxScore = maxScoreFor(assessment);
+    const studentResults = enrollments
+      .map((enrollment: any) => {
+        const student = enrollment.student;
+        const attempt = student?._id ? attemptsByStudent.get(String(student._id)) : null;
+        const score = Number(attempt?.score ?? 0);
+        const maxScore = Number(attempt?.maxScore ?? assessmentMaxScore);
+        const questionBreakdown = (assessment.questions ?? []).map((question: any, index: number) => {
+          const answer = attempt?.answers?.find((item: any) => item.questionIndex === index);
+          const questionMax = Number(question.marks ?? 0);
+          const marksAwarded =
+            assessment.type === "mcq"
+              ? answer?.selectedOptionIndex === question.correctOptionIndex ? questionMax : 0
+              : Number(answer?.marksAwarded ?? 0);
+          return {
+            questionIndex: index,
+            prompt: question.prompt,
+            marksAwarded,
+            maxMarks: questionMax
+          };
+        });
+
+        return {
+          studentId: String(student?._id ?? enrollment.student),
+          name: student?.name ?? "Unknown student",
+          email: student?.email ?? "",
+          status: attempt?.status ?? "not_started",
+          score,
+          maxScore,
+          percent: maxScore ? (score / maxScore) * 100 : 0,
+          submittedAt: attempt?.submittedAt ?? null,
+          questionBreakdown
+        };
+      })
+      .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+
+    const teacherAssessments = await Assessment.find({ teacher: teacherId })
+      .select("title type startTime")
+      .sort({ startTime: 1 })
+      .lean();
+    const attemptAverages = await AssessmentAttempt.aggregate([
+      { $match: { assessment: { $in: teacherAssessments.map((item) => item._id) }, status: { $in: ["submitted", "graded"] } } },
+      {
+        $group: {
+          _id: "$assessment",
+          avg: { $avg: "$score" },
+          avgMaxScore: { $avg: "$maxScore" },
+          attempts: { $sum: 1 }
+        }
+      }
+    ]);
+    const averagesByAssessment = new Map(attemptAverages.map((item: any) => [String(item._id), item]));
+    const testAverages = teacherAssessments.map((item: any) => {
+      const average = averagesByAssessment.get(String(item._id));
+      const avgScore = Number(average?.avg ?? 0);
+      const avgMaxScore = Number(average?.avgMaxScore ?? maxScoreFor(item));
+      return {
+        assessmentId: String(item._id),
+        title: item.title,
+        type: item.type,
+        startTime: item.startTime,
+        attempts: Number(average?.attempts ?? 0),
+        avgScore,
+        avgMaxScore,
+        avgPercent: avgMaxScore ? (avgScore / avgMaxScore) * 100 : 0
+      };
+    });
+
     return {
       totalAttempts: attempts.length,
       max,
@@ -303,7 +384,9 @@ export const assessmentsService = {
       avgPercent: attemptsMaxScore ? (avg / attemptsMaxScore) * 100 : 0,
       attemptsMaxScore,
       stdDev,
-      questionAccuracy
+      questionAccuracy,
+      studentResults,
+      testAverages
     };
   },
 

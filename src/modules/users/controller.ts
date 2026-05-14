@@ -98,8 +98,8 @@ export const setAvailability = asyncHandler(async (req: AuthRequest, res: Respon
   res.json(teacher);
 });
 
-export const teacherPerformance = asyncHandler(async (_req: AuthRequest, res: Response) => {
-  const topStudents = await usersService.getTopStudents();
+export const teacherPerformance = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const topStudents = await usersService.getTeacherTopStudents(String(req.user!.id));
   res.json(topStudents);
 });
 

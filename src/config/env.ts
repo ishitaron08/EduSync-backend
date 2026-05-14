@@ -26,6 +26,10 @@ const envSchema = z.object({
   OPENROUTER_MODEL: z.string().default("openai/gpt-4o-mini"),
   OPENROUTER_SITE_URL: z.string().default("http://localhost:3000"),
   OPENROUTER_APP_NAME: z.string().default("EduSync"),
+  AI_CHAT_PROVIDER: z.enum(["auto", "gemini", "openrouter"]).default("auto"),
+  AI_CHAT_DAILY_LIMIT: z.coerce.number().int().min(1).max(100).default(20),
+  AI_CHAT_MAX_HISTORY: z.coerce.number().int().min(0).max(12).default(6),
+  AI_CHAT_MAX_INPUT_CHARS: z.coerce.number().int().min(200).max(4000).default(1200),
   LOG_LEVEL: z.enum(["silent", "error", "warn", "info"]).default("error"),
   CONSOLE_STARTUP_BANNER: z.coerce.boolean().default(true)
 });

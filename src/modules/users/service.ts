@@ -37,6 +37,50 @@ export const usersService = {
   getTopStudents() {
     return usersRepository.getTopStudents();
   },
+  async getTeacherTopStudents(teacherId: string) {
+    const timetables = await Timetable.find({ "slots.teacher": teacherId }).select("section").lean();
+    const sectionIds = Array.from(new Set(
+      timetables
+        .map((timetable) => timetable.section)
+        .filter(Boolean)
+        .map((section) => String(section))
+    ));
+
+    if (sectionIds.length === 0) {
+      return [];
+    }
+
+    const enrollments = await Enrollment.find({ section: { $in: sectionIds } })
+      .populate({
+        path: "student",
+        select: "name email rewardPoints"
+      })
+      .populate({
+        path: "section",
+        select: "sectionCode term year course",
+        populate: { path: "course", select: "code name" }
+      })
+      .lean();
+
+    const studentsById = new Map<string, any>();
+    for (const enrollment of enrollments) {
+      const student = enrollment.student as any;
+      if (!student?._id) continue;
+      const studentId = String(student._id);
+      const existing = studentsById.get(studentId);
+      if (existing) continue;
+      studentsById.set(studentId, {
+        _id: studentId,
+        name: student.name,
+        email: student.email,
+        rewardPoints: Number(student.rewardPoints ?? 0),
+        section: enrollment.section ?? null
+      });
+    }
+
+    return Array.from(studentsById.values())
+      .sort((a, b) => (b.rewardPoints ?? 0) - (a.rewardPoints ?? 0) || String(a.name).localeCompare(String(b.name)));
+  },
   getRewardPoints(userId: string) {
     return usersRepository.getRewardPoints(userId);
   },

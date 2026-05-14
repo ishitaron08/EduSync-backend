@@ -1,4 +1,5 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { goalLibraryRoute } from "../modules/goalLibrary";
 import { createGoal, deleteGoal, getGoals, updateGoal } from "../modules/goals/goals.controller";
 import { scanQrAttendance, getStudentAttendanceHistory, getStudentAttendanceStats } from "../modules/attendance/student.controller";
@@ -34,8 +35,16 @@ import {
   updateSyllabusTaskStudySchema,
   updateSyllabusProgressSchema
 } from "../modules/syllabusGoals/validators";
+import { getStudentChatStatus, sendStudentChatMessage } from "../modules/studentChat/controller";
+import { studentChatRequestSchema } from "../modules/studentChat/validators";
 
 const router = Router();
+const studentChatLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 6,
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 router.use(authenticate, authorize("student"));
 router.get("/timetable", studentTimetable);
@@ -48,6 +57,8 @@ router.get("/profile", getStudentProfile);
 router.patch("/profile", updateStudentProfile);
 router.get("/syllabus-goals", getSyllabusGoals);
 router.get("/syllabus-goals/provider", getSyllabusAiProvider);
+router.get("/chat/status", getStudentChatStatus);
+router.post("/chat", studentChatLimiter, validateRequest(studentChatRequestSchema), sendStudentChatMessage);
 router.post("/syllabus-goals/select", validateRequest(selectSyllabusGoalSchema), selectSyllabusGoal);
 router.post("/syllabus-goals/custom", validateRequest(createCustomSyllabusGoalSchema), createCustomSyllabusGoal);
 router.patch("/syllabus-goals/progress", validateRequest(updateSyllabusProgressSchema), updateSyllabusProgress);

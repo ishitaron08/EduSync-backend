@@ -1,5 +1,10 @@
+import { PipelineStage } from "mongoose";
 import { RewardTransaction } from "../../models/RewardTransaction";
-import { usersRepository } from "../users/users.queries";
+import { User } from "../../models/User";
+
+function escapeRegex(input: string): string {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 function scopeStartDate(scope: "weekly" | "monthly") {
   const now = new Date();
@@ -16,14 +21,24 @@ function scopeStartDate(scope: "weekly" | "monthly") {
 }
 
 export const leaderboardService = {
-  async getLeaderboard(scope: "all_time" | "weekly" | "monthly") {
+  async getLeaderboard(scope: "all_time" | "weekly" | "monthly", options: { limit?: number; q?: string } = {}) {
+    const limit = Math.min(1000, Math.max(1, Number(options.limit ?? 20)));
+    const q = options.q?.trim();
+    const searchMatch = q
+      ? {
+          $or: [
+            { "student.name": new RegExp(escapeRegex(q), "i") },
+            { "student.email": new RegExp(escapeRegex(q), "i") }
+          ]
+        }
+      : null;
+
     if (scope !== "all_time") {
       const startDate = scopeStartDate(scope);
-      const rows = await RewardTransaction.aggregate([
+      const pipeline: PipelineStage[] = [
         { $match: { createdAt: { $gte: startDate } } },
         { $group: { _id: "$student", rewardPoints: { $sum: "$points" } } },
         { $sort: { rewardPoints: -1 } },
-        { $limit: 20 },
         {
           $lookup: {
             from: "users",
@@ -34,6 +49,10 @@ export const leaderboardService = {
         },
         { $unwind: "$student" },
         { $match: { "student.role": "student" } },
+      ];
+      if (searchMatch) pipeline.push({ $match: searchMatch });
+      pipeline.push(
+        { $limit: limit },
         {
           $project: {
             studentId: { $toString: "$student._id" },
@@ -42,7 +61,9 @@ export const leaderboardService = {
             rewardPoints: 1
           }
         }
-      ]);
+      );
+
+      const rows = await RewardTransaction.aggregate(pipeline);
 
       return {
         scope,
@@ -58,7 +79,17 @@ export const leaderboardService = {
       };
     }
 
-    const students = await usersRepository.getTopStudents();
+    const userQuery: Record<string, unknown> = { role: "student" };
+    if (q) {
+      const rx = new RegExp(escapeRegex(q), "i");
+      userQuery.$or = [{ name: rx }, { email: rx }];
+    }
+    const students = await User.find(userQuery)
+      .select("name email rewardPoints")
+      .sort({ rewardPoints: -1, name: 1 })
+      .limit(limit)
+      .lean();
+
     return {
       scope,
       generatedAt: new Date().toISOString(),
