@@ -1,0 +1,52 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "ts-node-dev --quiet --respawn --transpile-only --ignore-watch dist src/server.ts",
+    "dev:verbose": "ts-node-dev --respawn --transpile-only --ignore-watch dist src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "lint": "tsc --noEmit && npm run check:indexes",
+    "check:indexes": "node scripts/checkModelIndexes.js",
+    "test": "set NODE_ENV=test&& node --test dist/tests/**/*.test.js",
+    "migrate:schema-v2": "ts-node-dev --transpile-only src/scripts/migrateToSchemaV2.ts",
+    "migrate:timetables-section-schema": "node scripts/migrateTimetablesToSectionSchema.js",
+    "migrate:remove-section-teacher": "node scripts/removeSectionTeacherField.js",
+    "migrate:single-section-enrollment": "node scripts/enforceSingleSectionEnrollment.js",
+    "seed:users": "node scripts/seedUsers.js",
+    "seed:courses": "node scripts/seedCourses.js",
+    "seed:all": "node scripts/Ishit_full_seed.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@google/genai": "^2.2.0",
+    "@types/cookie-parser": "^1.4.10",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.4.1",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.10.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.5.0",
+    "morgan": "^1.10.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^25.6.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^6.0.3"
+  }
+}
