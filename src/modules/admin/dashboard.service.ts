@@ -149,11 +149,11 @@ export const dashboardService = {
         .limit(5)
         .lean(),
 
-      // Top students by reward points
+      // All students by reward points. The overview card handles scrolling
+      // and search, so the API should not hide lower-ranked students.
       User.find({ role: "student" })
         .select("name email rewardPoints")
         .sort({ rewardPoints: -1 })
-        .limit(5)
         .lean()
     ]);
 
