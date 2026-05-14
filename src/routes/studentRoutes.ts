@@ -9,7 +9,7 @@ import {
   studentStartAssessmentAttempt,
   studentSubmitAssessmentAttempt
 } from "../modules/assessments/controller";
-import { completeStudentTask, createTask, listTasks, updateTask, getTaskRecommendations } from "../modules/tasks/controller";
+import { completeStudentTask, createTask, listTasks, updateTask, getTaskRecommendations, getTaskHistory } from "../modules/tasks/controller";
 import { studentRewardPoints, updateStudentProfile, getStudentProfile } from "../modules/users/controller";
 import { getLeaderboard } from "../modules/leaderboard/controller";
 import { studentFreeSlots, studentTimetable } from "../modules/timetable/controller";
@@ -23,14 +23,15 @@ import {
   completeSyllabusTask,
   getSyllabusAiProvider,
   getSyllabusGoals,
-  regenerateSyllabus,
   selectSyllabusGoal,
+  updateSyllabusTaskStudy,
   updateSyllabusProgress
 } from "../modules/syllabusGoals/controller";
 import {
   createCustomSyllabusGoalSchema,
   completeSyllabusTaskSchema,
   selectSyllabusGoalSchema,
+  updateSyllabusTaskStudySchema,
   updateSyllabusProgressSchema
 } from "../modules/syllabusGoals/validators";
 
@@ -50,13 +51,14 @@ router.get("/syllabus-goals/provider", getSyllabusAiProvider);
 router.post("/syllabus-goals/select", validateRequest(selectSyllabusGoalSchema), selectSyllabusGoal);
 router.post("/syllabus-goals/custom", validateRequest(createCustomSyllabusGoalSchema), createCustomSyllabusGoal);
 router.patch("/syllabus-goals/progress", validateRequest(updateSyllabusProgressSchema), updateSyllabusProgress);
+router.patch("/syllabus-goals/task/study", validateRequest(updateSyllabusTaskStudySchema), updateSyllabusTaskStudy);
 router.patch("/syllabus-goals/task/complete", validateRequest(completeSyllabusTaskSchema), completeSyllabusTask);
-router.post("/syllabus-goals/regenerate", regenerateSyllabus);
 router.post("/goals", validateRequest(createGoalSchema), createGoal);
 router.get("/goals", getGoals);
 router.patch("/goals/:id", validateRequest(updateGoalSchema), updateGoal);
 router.delete("/goals/:id", deleteGoal);
 router.get("/tasks/recommendations", getTaskRecommendations);
+router.get("/tasks/history", getTaskHistory);
 router.post("/tasks", validateRequest(createTaskSchema), createTask);
 router.get("/tasks", listTasks);
 router.patch("/tasks/:id", validateRequest(updateTaskSchema), updateTask);

@@ -27,6 +27,10 @@ export type SuggestedTask = {
   title: string;
   category: string;
   durationMinutes: number;
+  difficulty: "Easy" | "Medium" | "Hard";
+  basePoints: number;
+  /** 0..1 confidence/score for ordering. */
+  score: number;
   reason: string;
 };
 

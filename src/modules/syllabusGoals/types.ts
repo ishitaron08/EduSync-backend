@@ -8,6 +8,8 @@ export type SyllabusTask = {
   completed?: boolean;
   completedAt?: Date;
   pointsAwarded?: number;
+  checklistCompleted?: number[];
+  studyNote?: string;
 };
 
 export type SyllabusSubtopic = {
@@ -28,6 +30,8 @@ export type SyllabusTopic = {
   description?: string;
   level: "basic" | "intermediate" | "advanced";
   order: number;
+  completedAt?: Date;
+  acknowledgedAt?: Date;
   subtopics: SyllabusSubtopic[];
 };
 

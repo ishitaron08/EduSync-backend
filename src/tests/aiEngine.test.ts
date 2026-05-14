@@ -11,7 +11,7 @@ test("buildFeatures identifies low momentum students", () => {
     progressContext: { completionRate: 0.2, completedTasks: 2, totalTasks: 10 }
   });
   assert.equal(features.isLowMomentum, true);
-  assert.equal(features.dominantCategory, "aptitude");
+  assert.equal(features.bucket, "placement_prep");
 });
 
 test("runRecommender returns v2 shaped recommendation payload", () => {

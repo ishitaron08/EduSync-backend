@@ -14,7 +14,9 @@ const syllabusTaskSchema = new Schema(
     resourceHint: { type: String, trim: true, default: "" },
     completed: { type: Boolean, default: false },
     completedAt: { type: Date },
-    pointsAwarded: { type: Number, default: 0, min: 0 }
+    pointsAwarded: { type: Number, default: 0, min: 0 },
+    checklistCompleted: { type: [Number], default: [] },
+    studyNote: { type: String, trim: true, default: "" }
   },
   { _id: false }
 );
@@ -45,6 +47,8 @@ const syllabusTopicSchema = new Schema(
       required: true
     },
     order: { type: Number, required: true, min: 1 },
+    completedAt: { type: Date },
+    acknowledgedAt: { type: Date },
     subtopics: { type: [syllabusSubtopicSchema], default: [] }
   },
   { _id: false }

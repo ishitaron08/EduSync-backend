@@ -28,5 +28,15 @@ export const updateSyllabusProgressSchema = z.object({
 export const completeSyllabusTaskSchema = z.object({
   topicKey: z.string().trim().min(1),
   subtopicKey: z.string().trim().min(1),
-  taskKey: z.string().trim().min(1)
+  taskKey: z.string().trim().min(1),
+  checklistCompleted: z.array(z.number().int().min(0).max(12)).max(20).optional(),
+  studyNote: z.string().max(5000).optional()
+});
+
+export const updateSyllabusTaskStudySchema = z.object({
+  topicKey: z.string().trim().min(1),
+  subtopicKey: z.string().trim().min(1),
+  taskKey: z.string().trim().min(1),
+  checklistCompleted: z.array(z.number().int().min(0).max(12)).max(20).optional(),
+  studyNote: z.string().max(5000).optional()
 });

@@ -34,3 +34,9 @@ export const getTaskRecommendations = asyncHandler(async (req: AuthRequest, res:
   const recommendations = await tasksService.getTaskRecommendations(String(req.user!.id), duration);
   res.json(recommendations);
 });
+
+export const getTaskHistory = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const limit = parseInt(req.query.limit as string) || 50;
+  const history = await tasksService.listTaskHistory(String(req.user!.id), limit);
+  res.json(history);
+});

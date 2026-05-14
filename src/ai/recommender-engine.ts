@@ -2,8 +2,14 @@ import { buildFeatures } from "./feature-builder";
 import { buildTaskCatalog } from "./task-catalog";
 import { PredictV2Input, PredictV2Output } from "./types";
 
-function chooseRecommendation(input: PredictV2Input): { recommendation: string; confidence: number; explanations: string[] } {
-  const features = buildFeatures(input);
+type RecommenderOptions = {
+  /** Maximum suggested tasks to return (5–7 recommended). Defaults to 6. */
+  taskLimit?: number;
+};
+
+function chooseRecommendation(
+  features: ReturnType<typeof buildFeatures>
+): { recommendation: string; confidence: number; explanations: string[] } {
   if (features.isLowMomentum) {
     return {
       recommendation: "quick_win",
@@ -26,18 +32,27 @@ function chooseRecommendation(input: PredictV2Input): { recommendation: string; 
     };
   }
   return {
-    recommendation: features.dominantCategory,
+    recommendation: features.bucket,
     confidence: 0.76,
     explanations: ["Recommendation aligns with your active goal and current progress profile."]
   };
 }
 
-export function runRecommender(input: PredictV2Input, startedAtMs = Date.now()): PredictV2Output {
-  const picked = chooseRecommendation(input);
+export function runRecommender(
+  input: PredictV2Input,
+  startedAtMs = Date.now(),
+  options: RecommenderOptions = {}
+): PredictV2Output {
+  const features = buildFeatures(input);
+  const picked = chooseRecommendation(features);
+
   const tasks = buildTaskCatalog({
-    category: picked.recommendation,
-    difficulty: input.goalContext.difficultyPreference,
-    freeMinutes: input.availabilityContext.freeMinutesToday
+    bucket: features.bucket,
+    goalText: input.goalContext.goalType,
+    difficultyPreference: input.goalContext.difficultyPreference,
+    freeMinutes: input.availabilityContext.freeMinutesToday,
+    isLowMomentum: features.isLowMomentum,
+    limit: options.taskLimit ?? 6
   });
 
   return {

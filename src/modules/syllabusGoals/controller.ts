@@ -32,7 +32,7 @@ export const completeSyllabusTask = asyncHandler(async (req: AuthRequest, res: R
   res.json(result);
 });
 
-export const regenerateSyllabus = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const dashboard = await syllabusGoalsService.regenerate(String(req.user!.id));
-  res.json(dashboard);
+export const updateSyllabusTaskStudy = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const plan = await syllabusGoalsService.updateTaskStudy(String(req.user!.id), req.body);
+  res.json(plan);
 });
