@@ -84,8 +84,24 @@ export const usersService = {
     );
   },
   async getStudentProfile(userId: string) {
-    const user = await usersRepository.findById(userId);
-    return user;
+    const [user, enrollment] = await Promise.all([
+      usersRepository.findById(userId).lean(),
+      Enrollment.findOne({ student: userId })
+        .populate({
+          path: "section",
+          select: "sectionCode term year course",
+          populate: { path: "course", select: "code name" }
+        })
+        .lean()
+    ]);
+
+    if (!user) return user;
+
+    return {
+      ...user,
+      enrollment: enrollment ?? null,
+      section: (enrollment?.section as unknown) ?? null
+    };
   },
   async updateStudentProfile(userId: string, payload: Record<string, unknown>) {
     const safePayload: Record<string, unknown> = {};

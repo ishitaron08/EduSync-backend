@@ -22,9 +22,11 @@ const allowedOrigins = env.ALLOWED_ORIGINS.split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+type CorsOriginCallback = (err: Error | null, allow?: boolean) => void;
+
 app.use(helmet());
 app.use(cors({
-  origin(origin, callback) {
+  origin(origin: string | undefined, callback: CorsOriginCallback) {
     // Allow non-browser requests (curl, server-to-server) which omit Origin.
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
