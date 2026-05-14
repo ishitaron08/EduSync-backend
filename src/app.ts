@@ -18,10 +18,25 @@ import { env } from "./config/env";
 const app = express();
 app.set("trust proxy", 1);
 
+const allowedOrigins = env.ALLOWED_ORIGINS.split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 app.use(helmet());
 app.use(cors({
-  origin: env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()),
+  origin(origin, callback) {
+    // Allow non-browser requests (curl, server-to-server) which omit Origin.
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    // Allow Vercel preview deployments so PR builds can hit the API.
+    try {
+      const hostname = new URL(origin).hostname;
+      if (hostname.endsWith(".vercel.app")) return callback(null, true);
+    } catch {
+      // ignore malformed origin and fall through to deny
+    }
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
   credentials: true
 }));
 app.use(cookieParser());
