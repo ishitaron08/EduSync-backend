@@ -4,6 +4,7 @@ import { AttendanceRecord } from "../../models/AttendanceRecord";
 import { Enrollment } from "../../models/Enrollment";
 import { StudentTask } from "../../models/StudentTask";
 import { Timetable } from "../../models/Timetable";
+import { goalLibraryRepository } from "../goalLibrary/repository";
 import { syllabusGoalsService } from "../syllabusGoals/service";
 
 export const usersService = {
@@ -97,7 +98,9 @@ export const usersService = {
     
     const user = await usersRepository.updateById(userId, safePayload);
     if (typeof payload.learningGoal === "string" && payload.learningGoal.trim() !== "") {
-      await syllabusGoalsService.syncSelectedGoalFromProfile(userId, payload.learningGoal.trim());
+      const learningGoal = payload.learningGoal.trim();
+      await goalLibraryRepository.upsertByTitle(learningGoal);
+      await syllabusGoalsService.syncSelectedGoalFromProfile(userId, learningGoal);
     }
     return user;
   }

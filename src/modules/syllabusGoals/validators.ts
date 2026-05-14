@@ -24,3 +24,9 @@ export const updateSyllabusProgressSchema = z.object({
   subtopicKey: z.string().trim().min(1),
   progressPercent: z.number().min(0).max(100)
 });
+
+export const completeSyllabusTaskSchema = z.object({
+  topicKey: z.string().trim().min(1),
+  subtopicKey: z.string().trim().min(1),
+  taskKey: z.string().trim().min(1)
+});

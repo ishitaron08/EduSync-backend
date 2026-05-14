@@ -7,6 +7,11 @@ import { getSyllabusAiModelLabel, getSyllabusAiProviderStatus, syllabusAiService
 import { presetGoalOptions } from "./types";
 
 const DEFAULT_TARGET_DAYS = 90;
+const MIN_ROADMAP_TOPICS = 9;
+const MIN_ROADMAP_SUBTOPICS = 4;
+const MIN_ROADMAP_TASKS = 2;
+const TASK_POINTS = 10;
+const SUBTOPIC_BONUS_POINTS = 20;
 
 function targetDate() {
   const date = new Date();
@@ -61,6 +66,40 @@ async function generatePlanForGoal(studentId: string, goal: any) {
   return plan;
 }
 
+function planNeedsRoadmapUpgrade(plan: any) {
+  if (!plan || plan.status !== "ready") return false;
+  const topics = Array.isArray(plan.topics) ? plan.topics : [];
+  if (topics.length < MIN_ROADMAP_TOPICS) return true;
+
+  return topics.some((topic: any) => {
+    if (!topic.level || !topic.order) return true;
+    const subtopics = Array.isArray(topic.subtopics) ? topic.subtopics : [];
+    if (subtopics.length < MIN_ROADMAP_SUBTOPICS) return true;
+    return subtopics.some((subtopic: any) => {
+      if (!subtopic.order) return true;
+      const tasks = Array.isArray(subtopic.tasks) ? subtopic.tasks : [];
+      if (tasks.length < MIN_ROADMAP_TASKS) return true;
+      return tasks.some((task: any) => !task.key || !task.type || !task.estimatedMinutes);
+    });
+  });
+}
+
+function recalculateSubtopicProgress(subtopic: any) {
+  const tasks = Array.isArray(subtopic.tasks) ? subtopic.tasks : [];
+  if (tasks.length === 0) {
+    subtopic.progressPercent = 0;
+    return { completedCount: 0, totalCount: 0, completed: false };
+  }
+
+  const completedCount = tasks.filter((task: any) => Boolean(task.completed)).length;
+  subtopic.progressPercent = Math.round((completedCount / tasks.length) * 100);
+  return {
+    completedCount,
+    totalCount: tasks.length,
+    completed: completedCount === tasks.length
+  };
+}
+
 export const syllabusGoalsService = {
   getProviderStatus() {
     return getSyllabusAiProviderStatus();
@@ -76,6 +115,8 @@ export const syllabusGoalsService = {
 
     let plan = selectedGoal ? await SyllabusPlan.findOne({ student: studentId, goal: selectedGoal._id }) : null;
     if (selectedGoal && !plan) {
+      plan = await generatePlanForGoal(studentId, selectedGoal);
+    } else if (selectedGoal && planNeedsRoadmapUpgrade(plan)) {
       plan = await generatePlanForGoal(studentId, selectedGoal);
     }
 
@@ -203,13 +244,62 @@ export const syllabusGoalsService = {
     return plan;
   },
 
+  async completeTask(studentId: string, payload: { topicKey: string; subtopicKey: string; taskKey: string }) {
+    const selectedGoal = await StudentGoal.findOne({ student: studentId, isSelected: true });
+    if (!selectedGoal) throw new AppError("Select a goal before completing syllabus tasks", 400);
+    const plan = await SyllabusPlan.findOne({ student: studentId, goal: selectedGoal._id });
+    if (!plan) throw new AppError("Syllabus plan not found", 404);
+    if (plan.status !== "ready") throw new AppError("Syllabus plan is not ready", 409);
+
+    const topic = (plan.topics as any[]).find((item) => item.key === payload.topicKey);
+    if (!topic) throw new AppError("Topic not found", 404);
+
+    const subtopic = (topic.subtopics as any[]).find((item) => item.key === payload.subtopicKey);
+    if (!subtopic) throw new AppError("Subtopic not found", 404);
+
+    const task = (subtopic.tasks as any[]).find((item) => item.key === payload.taskKey);
+    if (!task) throw new AppError("Task not found", 404);
+
+    let awardedPoints = 0;
+    let taskAwarded = 0;
+    let bonusAwarded = 0;
+    const now = new Date();
+
+    if (!task.completed) {
+      task.completed = true;
+      task.completedAt = now;
+      task.pointsAwarded = TASK_POINTS;
+      taskAwarded = TASK_POINTS;
+      awardedPoints += TASK_POINTS;
+    }
+
+    const progress = recalculateSubtopicProgress(subtopic);
+    if (progress.completed && !subtopic.bonusAwarded) {
+      subtopic.bonusAwarded = true;
+      subtopic.bonusAwardedAt = now;
+      bonusAwarded = SUBTOPIC_BONUS_POINTS;
+      awardedPoints += SUBTOPIC_BONUS_POINTS;
+    }
+
+    if (awardedPoints > 0) {
+      await User.findByIdAndUpdate(studentId, { $inc: { rewardPoints: awardedPoints } });
+    }
+
+    plan.markModified("topics");
+    await plan.save();
+
+    return {
+      syllabusPlan: plan,
+      awardedPoints,
+      taskAwarded,
+      bonusAwarded,
+      subtopicCompleted: progress.completed
+    };
+  },
+
   async regenerate(studentId: string) {
     const selectedGoal = await StudentGoal.findOne({ student: studentId, isSelected: true });
     if (!selectedGoal) throw new AppError("Select a goal before generating syllabus", 400);
-    const existing = await SyllabusPlan.findOne({ student: studentId, goal: selectedGoal._id });
-    if (existing && existing.status === "ready") {
-      throw new AppError("Syllabus is already generated", 409);
-    }
     await generatePlanForGoal(studentId, selectedGoal);
     return this.getDashboard(studentId);
   }

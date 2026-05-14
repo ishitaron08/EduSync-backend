@@ -1,13 +1,24 @@
 export type SyllabusTask = {
+  key: string;
   title: string;
   description?: string;
+  type: "read" | "practice" | "build" | "revise" | "assess";
+  estimatedMinutes: number;
+  resourceHint?: string;
+  completed?: boolean;
+  completedAt?: Date;
+  pointsAwarded?: number;
 };
 
 export type SyllabusSubtopic = {
   key: string;
   title: string;
   description?: string;
+  order: number;
+  estimatedHours: number;
   progressPercent: number;
+  bonusAwarded?: boolean;
+  bonusAwardedAt?: Date;
   tasks: SyllabusTask[];
 };
 
@@ -15,6 +26,8 @@ export type SyllabusTopic = {
   key: string;
   title: string;
   description?: string;
+  level: "basic" | "intermediate" | "advanced";
+  order: number;
   subtopics: SyllabusSubtopic[];
 };
 

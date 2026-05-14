@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { goalLibraryRoute } from "../modules/goalLibrary";
 import { createGoal, deleteGoal, getGoals, updateGoal } from "../modules/goals/goals.controller";
 import { scanQrAttendance, getStudentAttendanceHistory, getStudentAttendanceStats } from "../modules/attendance/student.controller";
 import {
@@ -19,6 +20,7 @@ import { createTaskSchema, updateTaskSchema } from "../modules/tasks/tasks.valid
 import { submitAssessmentSchema } from "../modules/assessments/validators";
 import {
   createCustomSyllabusGoal,
+  completeSyllabusTask,
   getSyllabusAiProvider,
   getSyllabusGoals,
   regenerateSyllabus,
@@ -27,6 +29,7 @@ import {
 } from "../modules/syllabusGoals/controller";
 import {
   createCustomSyllabusGoalSchema,
+  completeSyllabusTaskSchema,
   selectSyllabusGoalSchema,
   updateSyllabusProgressSchema
 } from "../modules/syllabusGoals/validators";
@@ -35,6 +38,7 @@ const router = Router();
 
 router.use(authenticate, authorize("student"));
 router.get("/timetable", studentTimetable);
+router.use("/goal-library", goalLibraryRoute);
 router.post("/attendance/scan", scanQrAttendance);
 router.get("/attendance/history", getStudentAttendanceHistory);
 router.get("/attendance/stats", getStudentAttendanceStats);
@@ -46,6 +50,7 @@ router.get("/syllabus-goals/provider", getSyllabusAiProvider);
 router.post("/syllabus-goals/select", validateRequest(selectSyllabusGoalSchema), selectSyllabusGoal);
 router.post("/syllabus-goals/custom", validateRequest(createCustomSyllabusGoalSchema), createCustomSyllabusGoal);
 router.patch("/syllabus-goals/progress", validateRequest(updateSyllabusProgressSchema), updateSyllabusProgress);
+router.patch("/syllabus-goals/task/complete", validateRequest(completeSyllabusTaskSchema), completeSyllabusTask);
 router.post("/syllabus-goals/regenerate", regenerateSyllabus);
 router.post("/goals", validateRequest(createGoalSchema), createGoal);
 router.get("/goals", getGoals);
