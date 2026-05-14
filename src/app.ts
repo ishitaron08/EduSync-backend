@@ -49,6 +49,16 @@ const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 60 });
 app.use(requestContext);
 app.use(requestLogger);
 
+app.get("/", (_req, res) => {
+  res.status(200).json({
+    name: "EduSync API",
+    status: "ok",
+    docs: "/api",
+    health: "/health",
+    ready: "/ready"
+  });
+});
+
 app.get("/health", (_req, res) => {
   res.status(200).json({
     status: "ok",
@@ -74,6 +84,15 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/teacher", teacherRoutes);
 app.use("/api/student", studentRoutes);
 app.use("/api/ml", mlRoutes);
+
+// Catch-all 404 handler for unknown routes. Returns JSON instead of
+// Express's default "Cannot GET /xyz" plain-text response.
+app.use((req, res) => {
+  res.status(404).json({
+    error: "not_found",
+    message: `Route ${req.method} ${req.originalUrl} not found`
+  });
+});
 
 app.use(errorMiddleware);
 
